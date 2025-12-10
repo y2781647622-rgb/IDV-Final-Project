@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet"> <!-- 用于VS字体 -->
 
     <!-- 2. 地图与可视化 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -21,21 +22,16 @@
             theme: {
                 extend: {
                     colors: {
-                        'hist-red': '#8B1A1A',    /* 丹砂红 - 更深沉 */
-                        'hist-gold': '#C5A065',   /* 古铜金 - 更具金属质感 */
-                        'hist-paper': '#F5F5F0',  /* 宣纸白 */
-                        'hist-ink': '#2F2F2F',    /* 徽墨黑 */
-                        'kmt-blue': '#2C3E50',    /* 普鲁士蓝 - 降低饱和度 */
-                        'peace-blue': '#89CFF0',  /* 天青色 - 柔和的和平蓝 */
+                        'hist-red': '#ef4444',
+                        'hist-gold': '#fbbf24',
+                        'ccp-red': '#de2910', /* 党旗红 */
+                        'kmt-blue': '#002a86', /* 国民党蓝 */
                     },
                     fontFamily: {
                         serif: ['"Noto Serif SC"', 'serif'],
                         sans: ['"Noto Sans SC"', 'sans-serif'],
+                        vs: ['"Black Ops One"', 'cursive'],
                     },
-                    backgroundImage: {
-                        'paper-texture': "url('https://www.transparenttextures.com/patterns/paper-fibers.png')",
-                        'grain-texture': "url('https://www.transparenttextures.com/patterns/stardust.png')",
-                    }
                 }
             }
         }
@@ -43,26 +39,12 @@
 
     <style>
         /* --- 基础样式 --- */
-        :root {
-            --nav-size: 50px;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Noto Serif SC', serif; 
-            background: #2F2F2F; 
+            background: #111; 
             overflow: hidden; 
-            color: #2F2F2F;
-        }
-        
-        /* 全局纹理覆盖 (统一视觉风格) */
-        body::after {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 99999;
+            color: #fff;
         }
         
         /* --- 幻灯片容器 --- */
@@ -75,151 +57,203 @@
             opacity: 0;
             z-index: 1;
             overflow-y: auto;
-            background-color: #F5F5F0;
         }
         
         .page.active { transform: translateX(0); opacity: 1; z-index: 10; }
         .page.prev { transform: translateX(-100%); opacity: 0; z-index: 1; }
         .page.next { transform: translateX(100%); opacity: 0; z-index: 1; }
 
-        /* --- 背景叙事 (统一色调逻辑) --- */
-        /* P1: 战火 (深红渐变 + 纹理) */
-        #page1 { 
-            background: radial-gradient(circle at center, #8B1A1A 0%, #4a0e0e 100%); 
-            color: #F5F5F0;
-        } 
-        /* P2-P4: 历史画卷 (宣纸纹理) */
-        #page2, #page3, #page4 { 
-            background-color: #F5F5F0; 
-            background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
-        } 
-        /* P5: 曙光 (宣纸过渡到天青) - 解决割裂感 */
-        #page5 { 
-            background: linear-gradient(to top, #F5F5F0 0%, #C8E6F5 100%); 
-            background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png'); /* 保持纹理 */
-        } 
+        /* --- 背景叙事 (色彩流转) --- */
+        #page1 { background: linear-gradient(135deg, #dc2626 0%, #be123c 100%); } 
+        #page2 { background: linear-gradient(135deg, #be123c 0%, #7c3aed 100%); } 
+        #page3 { background: linear-gradient(135deg, #7c3aed 0%, #4338ca 100%); } 
+        #page4 { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); } 
+        #page5 { background: linear-gradient(to top, #3b82f6 0%, #7dd3fc 100%); } 
         
         /* --- 封面元素 --- */
         .cover-title { 
             font-size: clamp(3rem, 8vw, 6rem); 
             font-weight: 900; 
-            color: #C5A065; 
-            text-shadow: 0 4px 20px rgba(0,0,0,0.5); 
+            color: #fff; 
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3); 
             letter-spacing: 0.1em;
-            border-bottom: 2px solid rgba(197, 160, 101, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5);
             padding-bottom: 20px;
             margin-bottom: 20px;
         }
         
-        /* --- 地图样式 (复古化处理) --- */
+        /* --- 地图样式 --- */
         #map { 
             width: 100%; height: 100%; min-height: 500px; 
-            border-radius: 4px; 
-            border: 1px solid #C5A065; 
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.1), 0 10px 25px rgba(0,0,0,0.1); 
+            border-radius: 8px; 
+            border: 4px solid rgba(255,255,255,0.2); 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); 
             background: #e5e5e5; 
         }
-        /* 地图滤镜：使其看起来像旧地图 */
-        .leaflet-tile-pane { filter: sepia(0.3) contrast(0.9) grayscale(0.2); }
-        
-        /* 核心动画：领航红球 */
+        .leaflet-tile-pane { filter: sepia(0.2) contrast(1.0); }
         .red-army-ball {
-            background: radial-gradient(circle at 35% 35%, #ef4444, #991b1b);
+            background: radial-gradient(circle at 35% 35%, #ff5252, #b91c1c);
             border: 2px solid #fff; border-radius: 50%;
-            box-shadow: 0 0 10px rgba(185, 28, 28, 0.8);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
             width: 16px !important; height: 16px !important;
             margin-left: -8px !important; margin-top: -8px !important;
             transition: transform 0.2s; cursor: pointer !important; z-index: 9999 !important;
         }
         .red-army-ball:hover { transform: scale(1.5); }
-        .ink-path { stroke-linecap: round; stroke-linejoin: round; stroke-opacity: 0.8; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+        .ink-path { stroke-linecap: round; stroke-linejoin: round; stroke-opacity: 0.9; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
         
-        /* --- 导航组件 (修改为双向对称) --- */
+        /* --- 导航组件 --- */
         .nav-btn {
-            position: absolute; 
-            bottom: 50%; 
-            transform: translateY(50%);
+            position: absolute; bottom: 50%; transform: translateY(50%);
             width: 60px; height: 60px;
-            border: 1px solid rgba(47, 47, 47, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%; 
             display: flex; justify-content: center; align-items: center;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            color: #2F2F2F; 
-            z-index: 100;
-            background: rgba(255,255,255,0.6); 
-            backdrop-filter: blur(4px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            cursor: pointer; transition: all 0.3s; color: #fff; z-index: 100;
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
         }
-        .nav-btn:hover { 
-            background: #8B1A1A; 
-            color: #F5F5F0; 
-            border-color: #8B1A1A;
-            transform: translateY(50%) scale(1.1); 
-            box-shadow: 0 8px 20px rgba(139, 26, 26, 0.3);
-        }
+        .nav-btn:hover { background: rgba(255,255,255,0.9); color: #d11a2a; transform: translateY(50%) scale(1.1); }
         .nav-prev { left: 40px; }
         .nav-next { right: 40px; }
-        
-        /* 禁用状态 */
-        .nav-btn.disabled { opacity: 0; pointer-events: none; transform: translateY(50%) scale(0.8); }
+        .nav-btn.disabled { opacity: 0; pointer-events: none; }
 
-        /* 特定页面的导航颜色适配 */
-        #page1 .nav-btn { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.2); color: white; }
-        #page1 .nav-btn:hover { background: #C5A065; color: #2F2F2F; }
+        /* 语言切换按钮 */
+        .lang-switch {
+            position: absolute; top: 2rem; left: 2rem; z-index: 200;
+            display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px;
+            background: rgba(0,0,0,0.2); backdrop-filter: blur(4px);
+        }
+        .lang-btn {
+            padding: 0.5rem 1rem; font-size: 0.8rem; cursor: pointer; color: rgba(255,255,255,0.7); transition: all 0.3s;
+        }
+        .lang-btn.active {
+            background: rgba(255,255,255,0.2); color: #fff; font-weight: bold;
+        }
+        .lang-btn:hover { color: #fff; }
 
         /* --- 页面指示器 --- */
         .page-indicator { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; z-index: 100; }
-        .page-dot { 
-            width: 40px; height: 3px; 
-            background: rgba(47,47,47,0.2); 
-            cursor: pointer; transition: all 0.4s; 
-            border-radius: 2px;
-        }
-        .page-dot.active { background: #8B1A1A; width: 60px; }
-        #page1 .page-dot { background: rgba(255,255,255,0.2); }
-        #page1 .page-dot.active { background: #C5A065; }
+        .page-dot { width: 40px; height: 3px; background: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.4s; border-radius: 2px; }
+        .page-dot.active { background: #fff; width: 60px; }
         
-        /* --- 文字排版 --- */
-        .section-title { 
-            font-size: 2.2rem; 
-            color: #8B1A1A; 
-            margin-bottom: 2rem; 
-            display: inline-block; 
-            position: relative;
-            font-weight: 900;
+        /* --- 卡片样式 --- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            color: #333;
         }
-        .section-title::after {
-            content: ''; position: absolute; bottom: -10px; left: 0; width: 60px; height: 4px; background: #C5A065;
+
+        /* --- Page 2 特定样式 --- */
+        .bg-flag-ccp {
+            background-image: linear-gradient(rgba(222, 41, 16, 0.85), rgba(222, 41, 16, 0.9)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Flag_of_the_Chinese_Communist_Party.svg/1200px-Flag_of_the_Chinese_Communist_Party.svg.png');
+            background-size: cover; background-position: center; color: white !important; border: 2px solid #ffde00;
         }
+        .bg-flag-kmt {
+            background-image: linear-gradient(rgba(0, 42, 134, 0.85), rgba(0, 42, 134, 0.9)), url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Flag_of_the_Kuomintang.svg/1200px-Flag_of_the_Kuomintang.svg.png');
+            background-size: cover; background-position: center; color: white !important; border: 2px solid #fff;
+        }
+        .text-overlay {
+            background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px); border-radius: 8px; padding: 1rem; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .anim-hidden { opacity: 0; transform: translateY(20px); transition: all 0.8s ease-out; }
+        .anim-show { opacity: 1; transform: translateY(0); }
         
-        /* --- 和平鸽动画 (优化) --- */
-        .dove {
-            position: absolute; color: white; opacity: 0.6;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
-            animation: fly linear infinite;
+        /* 优化后的缓冲动画 */
+        .anim-left-hidden { opacity: 0; transform: translateX(-150px); transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
+        .anim-right-hidden { opacity: 0; transform: translateX(150px); transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
+        .anim-slide-in { opacity: 1; transform: translateX(0); }
+        
+        .collide-left { transform: translateX(30px) rotate(2deg) !important; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .collide-right { transform: translateX(-30px) rotate(-2deg) !important; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .vs-container { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0); z-index: 50; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); opacity: 0; }
+        .vs-show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        .vs-text { font-family: 'Black Ops One', cursive; font-size: 6rem; background: linear-gradient(to bottom, #fcd34d, #b91c1c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(255,0,0,0.8)); text-shadow: 2px 2px 0px white; }
+
+        /* --- Page 3 新增：迷你情报窗 --- */
+        .mini-window {
+            background: #111; border: 1px solid #444; border-radius: 4px; padding: 12px;
+            color: #0f0; font-family: 'Courier New', monospace; font-size: 0.8rem;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
+            min-height: 80px; display: flex; flex-direction: column; justify-content: center;
+            position: relative; overflow: hidden; margin-top: 1rem;
         }
+        .mini-window::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: rgba(0, 255, 0, 0.5); animation: scan 2s linear infinite; opacity: 0.5;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* --- Page 4 新增：激光对抗条 --- */
+        .laser-bar-container {
+            width: 100%; height: 12px; background: #333; border-radius: 6px; position: relative; overflow: hidden; margin-top: 10px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .laser-red {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%; /* Initial 0 */
+            background: linear-gradient(90deg, #b91c1c, #ff5252);
+            box-shadow: 0 0 10px #ff5252; z-index: 2;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s; /* Delay start */
+        }
+        .laser-blue {
+            position: absolute; right: 0; top: 0; height: 100%; width: 0%; /* Initial 0 */
+            background: linear-gradient(270deg, #1e3a8a, #60a5fa);
+            box-shadow: 0 0 10px #60a5fa; z-index: 1;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
+        }
+        .laser-clash {
+            position: absolute; top: -50%; height: 200%; width: 2px; background: white;
+            filter: blur(4px); box-shadow: 0 0 15px white; z-index: 3; opacity: 0;
+            transition: opacity 0.5s; left: 9%; /* Point of clash */
+        }
+        .animate-lasers .laser-red { width: 9%; }
+        .animate-lasers .laser-blue { width: 91%; }
+        .animate-lasers .laser-clash { opacity: 1; transition-delay: 1.8s; }
+
+        /* --- 和平鸽动画 & 交互按钮 --- */
+        .dove { position: absolute; color: white; opacity: 0.8; animation: fly linear infinite; }
         @keyframes fly {
             0% { transform: translateX(-10vw) translateY(20vh) scale(0.5) rotate(15deg); opacity: 0; }
-            20% { opacity: 0.8; }
-            80% { opacity: 0.8; }
+            20% { opacity: 0.9; }
+            80% { opacity: 0.9; }
             100% { transform: translateX(110vw) translateY(-30vh) scale(0.8) rotate(-5deg); opacity: 0; }
         }
-        .dove-1 { top: 40%; left: -10%; animation-duration: 18s; font-size: 3rem; animation-delay: 0s; color: #fff; }
-        .dove-2 { top: 60%; left: -10%; animation-duration: 14s; font-size: 5rem; animation-delay: 3s; color: #f0f9ff; }
+        .dove-1 { top: 40%; left: -10%; animation-duration: 18s; }
+        .dove-2 { top: 60%; left: -10%; animation-duration: 14s; animation-delay: 3s; }
+
+        .peace-btn-container {
+            cursor: pointer; transition: transform 0.3s;
+        }
+        .peace-btn-container:hover { transform: scale(1.1); }
+        .peace-btn-container:active { transform: scale(0.95); }
         
-        /* --- 响应式调整 --- */
-        @media (max-width: 768px) {
-            .nav-btn { width: 40px; height: 40px; bottom: 20px; transform: none; top: auto; }
-            .nav-prev { left: 20px; }
-            .nav-next { right: 20px; }
-            .nav-btn:hover { transform: scale(1.1); }
-            .nav-btn.disabled { transform: scale(0.8); }
+        /* 呼吸闪烁动画 */
+        @keyframes breathe {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            50% { transform: scale(1.1); box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.2); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        .animate-breathe {
+            animation: breathe 3s infinite ease-in-out;
+        }
+        
+        .peace-content {
+            opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.8s ease-out;
+        }
+        .peace-content.show {
+            opacity: 1; pointer-events: auto; transform: translateY(0);
         }
     </style>
 </head>
 <body>
 
-    <!-- 导航按钮 (固定在容器外层) -->
+    <!-- 语言切换 -->
+    <div class="lang-switch">
+        <div class="lang-btn active" id="btn-zh" onclick="app.setLanguage('zh')">中文</div>
+        <div class="lang-btn" id="btn-en" onclick="app.setLanguage('en')">English</div>
+    </div>
+
     <div class="nav-btn nav-prev disabled" onclick="changePage(-1)" id="btnPrev">
         <i class="fas fa-arrow-left"></i>
     </div>
@@ -229,67 +263,67 @@
 
     <div class="page-container">
         
-        <!-- Page 1: 封面 (深红 -> 庄重) -->
+        <!-- Page 1: 封面 -->
         <div class="page active" id="page1">
             <div class="flex flex-col items-center justify-center h-full relative z-10 px-4">
-                <div class="text-xs font-bold tracking-[0.6em] uppercase mb-6 text-hist-gold border border-hist-gold/30 px-4 py-2 rounded-sm bg-black/20 backdrop-blur-sm">1935.01 - 1935.05</div>
-                <h1 class="cover-title text-center">四渡赤水</h1>
-                <p class="text-xl md:text-2xl font-serif italic opacity-80 text-hist-paper mt-4 max-w-2xl text-center leading-relaxed">
+                <div class="text-xs font-bold tracking-[0.6em] uppercase mb-6 text-yellow-300 border border-yellow-300/50 px-4 py-2 rounded-sm bg-black/10 backdrop-blur-sm">1935.01 - 1935.03</div>
+                <h1 class="cover-title text-center" data-i18n="title">四渡赤水</h1>
+                <p class="text-xl md:text-2xl font-serif italic text-white/90 mt-4 max-w-2xl text-center leading-relaxed" data-i18n="subtitle">
                     "长征史上最光彩神奇的篇章"
                 </p>
                 <div class="mt-16 grid grid-cols-2 gap-12 text-center">
                     <div class="relative">
-                        <div class="text-4xl font-bold text-white mb-2">3.7<span class="text-lg opacity-60 ml-1">万</span></div>
-                        <div class="text-xs tracking-widest text-hist-gold uppercase">Red Army</div>
+                        <div class="text-4xl font-bold text-white mb-2" data-i18n="redArmyCount">3.7<span class="text-lg opacity-70 ml-1">万</span></div>
+                        <div class="text-xs tracking-widest text-yellow-200 uppercase" data-i18n="redArmyLabel">Red Army</div>
                     </div>
                     <div class="relative">
-                        <div class="text-4xl font-bold text-white mb-2">40<span class="text-lg opacity-60 ml-1">万</span></div>
-                        <div class="text-xs tracking-widest text-hist-gold uppercase">Opposition</div>
+                        <div class="text-4xl font-bold text-white mb-2" data-i18n="enemyCount">40<span class="text-lg opacity-70 ml-1">万</span></div>
+                        <div class="text-xs tracking-widest text-yellow-200 uppercase" data-i18n="enemyLabel">Opposition</div>
                     </div>
                 </div>
             </div>
-            <!-- 装饰背景纹理 -->
-            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]"></div>
         </div>
 
-        <!-- Page 2: 历史背景 -->
-        <div class="page p-8 md:p-16 flex items-center" id="page2">
-            <div class="max-w-6xl mx-auto w-full">
-                <h2 class="section-title">危局与破局</h2>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-4 items-center">
-                    <!-- 历史背景 -->
-                    <div class="bg-white/60 p-8 rounded-sm shadow-sm border-l-4 border-hist-ink backdrop-blur-sm">
-                        <h3 class="text-2xl font-bold text-hist-ink mb-6 flex items-center">
-                            <i class="fas fa-chess-board text-hist-red mr-3 opacity-80"></i>生死存亡
-                        </h3>
-                        <p class="text-stone-700 leading-8 text-justify mb-6 font-serif text-lg">
-                            1935年1月，遵义会议确立了新的领导核心。此时，中央红军面临着国民党40万大军的铁壁合围。
+        <!-- Page 2: 战役背景 -->
+        <div class="page p-8 md:p-16 flex flex-col justify-center" id="page2">
+            <div class="max-w-6xl mx-auto w-full relative">
+                <div id="p2-row1" class="w-full glass-card p-8 border-l-4 border-hist-red mb-12 anim-hidden">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-scroll text-red-600 mr-3"></i><span data-i18n="backgroundTitle">战役背景</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <p class="text-gray-700 leading-8 text-justify font-serif text-lg" data-i18n="backgroundDesc1">
+                            1935年1月，遵义会议确立了新的领导核心。此时，中央红军面临着国民党40万大军的铁壁合围，敌我力量对比高达10倍以上。
                         </p>
-                        <p class="text-stone-700 leading-8 text-justify font-serif text-lg">
-                            在川黔滇边境的崇山峻岭间，一场惊心动魄的<strong>"运动战"</strong>典范即将上演。这不是单纯的撤退，而是为了生存的绝地反击。
+                        <p class="text-gray-700 leading-8 text-justify font-serif text-lg" data-i18n="backgroundDesc2">
+                            在川黔滇边境的崇山峻岭间，一场惊心动魄的<strong>"运动战"</strong>典范即将上演。这不是单纯的撤退，而是为了生存，在敌人重兵集团之间穿插迂回的绝地反击。
                         </p>
                     </div>
-
-                    <!-- 统帅对比 (样式统一化) -->
-                    <div class="grid grid-cols-2 gap-6">
-                        <!-- 毛泽东 -->
-                        <div class="text-center group bg-white p-6 rounded-sm shadow-md border-t-4 border-hist-red hover:shadow-xl transition duration-500">
-                            <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-hist-paper shadow-inner mb-4 bg-stone-200 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/e8/Mao_Zedong_portrait.jpg')] bg-cover bg-center grayscale contrast-125"></div>
-                            <h4 class="text-xl font-bold text-hist-red mb-1">毛泽东</h4>
-                            <div class="h-1 w-8 bg-hist-gold mx-auto mb-3"></div>
-                            <p class="text-sm text-left text-stone-600 leading-relaxed">
-                                <span class="font-bold text-hist-ink">战略：</span>避实击虚，声东击西。在运动中调动敌人，创造战机。
-                            </p>
+                </div>
+                <div class="relative w-full h-[400px]">
+                    <div id="vs-element" class="vs-container"><span class="vs-text">VS</span></div>
+                    <div class="grid grid-cols-2 gap-4 h-full">
+                        <div id="card-mao" class="h-full bg-flag-ccp rounded-lg shadow-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden anim-left-hidden">
+                            <div class="text-overlay w-full h-full flex flex-col items-center justify-center">
+                                <div class="w-28 h-28 rounded-full overflow-hidden border-4 border-yellow-300 shadow-lg mb-4 bg-gray-200">
+                                    <img src="毛泽东.jpg" class="w-full h-full object-cover grayscale contrast-125" alt="毛泽东">
+                                </div>
+                                <h4 class="text-2xl font-bold text-yellow-300 mb-1" data-i18n="maoName">毛泽东</h4>
+                                <p class="text-xs text-center text-white/90 leading-relaxed font-serif mt-2" data-i18n="maoDesc">
+                                    中央红军实际指挥者<br>战略：<strong>避实击虚，声东击西</strong><br>"打得赢就打，打不赢就走"
+                                </p>
+                            </div>
                         </div>
-                        <!-- 蒋介石 -->
-                        <div class="text-center group bg-white p-6 rounded-sm shadow-md border-t-4 border-kmt-blue hover:shadow-xl transition duration-500">
-                            <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-hist-paper shadow-inner mb-4 bg-stone-200 bg-[url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Chiang_Kai-shek.jpg/480px-Chiang_Kai-shek.jpg')] bg-cover bg-top grayscale contrast-125"></div>
-                            <h4 class="text-xl font-bold text-kmt-blue mb-1">蒋介石</h4>
-                            <div class="h-1 w-8 bg-stone-400 mx-auto mb-3"></div>
-                            <p class="text-sm text-left text-stone-600 leading-relaxed">
-                                <span class="font-bold text-hist-ink">战略：</span>堡垒主义，铁壁合围。依托长江天险，企图聚歼红军。
-                            </p>
+                        <div id="card-chiang" class="h-full bg-flag-kmt rounded-lg shadow-2xl p-6 flex flex-col items-center justify-center relative overflow-hidden anim-right-hidden">
+                            <div class="text-overlay w-full h-full flex flex-col items-center justify-center">
+                                <div class="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg mb-4 bg-gray-200">
+                                    <img src="蒋介石.jpg" class="w-full h-full object-cover grayscale contrast-125 object-top" alt="蒋介石">
+                                </div>
+                                <h4 class="text-2xl font-bold text-white mb-1" data-i18n="chiangName">蒋介石</h4>
+                                <p class="text-xs text-center text-white/90 leading-relaxed font-serif mt-2" data-i18n="chiangDesc">
+                                    国民党军最高统帅<br>战略：<strong>堡垒主义，铁壁合围</strong><br>"凭借天险，毕其功于一役"
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -299,57 +333,35 @@
         <!-- Page 3: 地图推演 -->
         <div class="page p-4 md:p-6" id="page3">
             <div class="max-w-[1600px] mx-auto w-full h-full flex flex-col">
-                <div class="flex justify-between items-end mb-4 border-b border-stone-300 pb-2">
-                    <h2 class="section-title !mb-0 text-3xl">沙盘推演</h2>
-                    <div class="text-stone-500 text-sm italic font-serif hidden md:block">点击左侧时间轴，重现历史行军路线</div>
+                <div class="flex justify-between items-end mb-4 border-b border-white/20 pb-2">
+                    <h2 class="section-title !mb-0 text-3xl text-white" data-i18n="sandTableTitle">沙盘推演</h2>
                 </div>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow h-[calc(100%-80px)]">
                     <!-- 左侧控制 -->
                     <div class="lg:col-span-3 flex flex-col gap-4 h-full overflow-y-auto pr-2">
-                        <div class="bg-white p-5 rounded-sm shadow-md border border-stone-200">
-                            <div class="space-y-3">
-                                <button onclick="app.playPhase(0)" class="phase-btn w-full text-left p-4 rounded-sm bg-stone-50 hover:bg-red-50 border-l-4 border-stone-300 hover:border-hist-red transition group">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-hist-ink text-lg group-hover:text-hist-red">一渡赤水</span>
-                                        <span class="text-xs font-mono text-stone-400">01.29</span>
-                                    </div>
-                                    <div class="text-xs text-stone-500 mt-1 pl-1">西进受阻，改向川南</div>
-                                </button>
-                                <button onclick="app.playPhase(1)" class="phase-btn w-full text-left p-4 rounded-sm bg-stone-50 hover:bg-red-50 border-l-4 border-stone-300 hover:border-hist-red transition group">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-hist-ink text-lg group-hover:text-hist-red">二渡赤水</span>
-                                        <span class="text-xs font-mono text-stone-400">02.18</span>
-                                    </div>
-                                    <div class="text-xs text-stone-500 mt-1 pl-1">回师东进，再占遵义</div>
-                                </button>
-                                <button onclick="app.playPhase(2)" class="phase-btn w-full text-left p-4 rounded-sm bg-stone-50 hover:bg-red-50 border-l-4 border-stone-300 hover:border-hist-red transition group">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-hist-ink text-lg group-hover:text-hist-red">三渡赤水</span>
-                                        <span class="text-xs font-mono text-stone-400">03.16</span>
-                                    </div>
-                                    <div class="text-xs text-stone-500 mt-1 pl-1">佯攻古蔺，诱敌西进</div>
-                                </button>
-                                <button onclick="app.playPhase(3)" class="phase-btn w-full text-left p-4 rounded-sm bg-stone-50 hover:bg-red-50 border-l-4 border-stone-300 hover:border-hist-red transition group">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-hist-ink text-lg group-hover:text-hist-red">四渡赤水</span>
-                                        <span class="text-xs font-mono text-stone-400">03.21</span>
-                                    </div>
-                                    <div class="text-xs text-stone-500 mt-1 pl-1">跳出包围，南渡乌江</div>
-                                </button>
+                        <div class="glass-card p-5 border-none bg-white/90">
+                            <div class="space-y-3" id="phase-buttons-container">
+                                <!-- Generated by JS -->
                             </div>
-                            <button onclick="app.playOverview()" class="w-full mt-6 py-3 bg-hist-ink text-hist-paper rounded-sm shadow-lg hover:bg-hist-red transition font-bold flex items-center justify-center gap-2 border border-hist-ink">
-                                <i class="fas fa-film"></i> 播放全景史诗
+                            <button onclick="app.playOverview()" class="w-full mt-6 py-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2">
+                                <i class="fas fa-film"></i> <span data-i18n="playAll">播放全景史诗</span>
                             </button>
+                            
+                            <!-- 新增：战术小窗 -->
+                            <div id="tactical-reason-window" class="mini-window">
+                                <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">TACTICAL INTEL</div>
+                                <div id="tactical-text" class="text-sm font-bold typing-effect">...</div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- 地图容器 -->
                     <div class="lg:col-span-9 relative h-full">
                         <div id="map"></div>
-                        <div class="absolute bottom-6 left-6 bg-white/95 backdrop-blur px-4 py-3 rounded-sm shadow border border-stone-300 text-xs z-[500] font-serif">
-                            <div class="flex items-center mb-2"><span class="w-3 h-3 rounded-full bg-hist-red mr-2 shadow-sm"></span>中央红军主力</div>
-                            <div class="flex items-center"><span class="w-8 h-0.5 border-t-2 border-dashed border-kmt-blue mr-2"></span>国民党军防线</div>
+                        <div class="absolute bottom-6 left-6 bg-white/95 backdrop-blur px-4 py-3 rounded-md shadow-lg border border-gray-300 text-xs z-[500] font-serif text-gray-800">
+                            <div class="flex items-center mb-2"><span class="w-3 h-3 rounded-full bg-red-600 mr-2 shadow-sm"></span><span data-i18n="legendRed">中央红军主力</span></div>
+                            <div class="flex items-center"><span class="w-8 h-0.5 border-t-4 border-dashed border-slate-900 mr-2 opacity-90"></span><span data-i18n="legendBlue">国民党军防线</span></div>
                         </div>
                     </div>
                 </div>
@@ -359,52 +371,46 @@
         <!-- Page 4: 数据复盘 -->
         <div class="page p-8 md:p-16" id="page4">
             <div class="max-w-7xl mx-auto w-full">
-                <h2 class="section-title text-center block mx-auto">数据复盘</h2>
+                <h2 class="section-title text-center block mx-auto text-white" data-i18n="statsTitle">战役复盘</h2>
                 
-                <!-- 核心数据卡片 (样式优化) -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12 mt-8">
-                    <div class="bg-white p-6 rounded-sm shadow-sm text-center border-b-4 border-hist-gold">
-                        <div class="text-4xl font-serif font-bold text-hist-ink">110<span class="text-sm text-stone-500 ml-1">天</span></div>
-                        <div class="text-xs text-stone-400 mt-2 uppercase tracking-wide">Total Duration</div>
+                    <div class="glass-card p-6 text-center border-b-4 border-yellow-500 relative overflow-hidden">
+                        <!-- 动态日历效果 -->
+                        <div class="text-4xl font-serif font-bold text-gray-800 flex justify-center items-baseline">
+                            <span id="days-counter">0</span><span class="text-sm text-gray-500 ml-1" data-i18n="unitDays">天</span>
+                        </div>
+                        <div id="date-flip" class="text-xs text-red-600 mt-2 font-mono font-bold bg-red-50 py-1 rounded">1935.01.19</div>
                     </div>
-                    <div class="bg-white p-6 rounded-sm shadow-sm text-center border-b-4 border-hist-gold">
-                        <div class="text-4xl font-serif font-bold text-hist-ink">1750<span class="text-sm text-stone-500 ml-1">km</span></div>
-                        <div class="text-xs text-stone-400 mt-2 uppercase tracking-wide">March Distance</div>
+                    <div class="glass-card p-6 text-center border-b-4 border-yellow-500">
+                        <div class="text-4xl font-serif font-bold text-gray-800"><span id="total-distance-display">--</span><span class="text-sm text-gray-500 ml-1">km</span></div>
+                        <div class="text-xs text-gray-400 mt-2 uppercase tracking-wide" data-i18n="statDistance">Distance</div>
                     </div>
-                    <div class="bg-white p-6 rounded-sm shadow-sm text-center border-b-4 border-hist-gold">
-                        <div class="text-4xl font-serif font-bold text-hist-ink">1:10</div>
-                        <div class="text-xs text-stone-400 mt-2 uppercase tracking-wide">Troop Ratio</div>
+                    <div class="glass-card p-6 text-center border-b-4 border-yellow-500" id="ratio-card">
+                        <div class="text-4xl font-serif font-bold text-gray-800">1:10+</div>
+                        <!-- 激光对抗条 -->
+                        <div class="laser-bar-container">
+                            <div class="laser-red"></div>
+                            <div class="laser-blue"></div>
+                            <div class="laser-clash"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-2 uppercase tracking-wide" data-i18n="statRatio">Force Disparity</div>
                     </div>
-                    <div class="bg-white p-6 rounded-sm shadow-sm text-center border-b-4 border-hist-gold">
-                        <div class="text-4xl font-serif font-bold text-hist-ink">4<span class="text-sm text-stone-500 ml-1">次</span></div>
-                        <div class="text-xs text-stone-400 mt-2 uppercase tracking-wide">River Crossings</div>
+                    <div class="glass-card p-6 text-center border-b-4 border-yellow-500">
+                        <div class="text-4xl font-serif font-bold text-gray-800">4<span class="text-sm text-gray-500 ml-1" data-i18n="unitTimes">次</span></div>
+                        <div class="text-xs text-gray-400 mt-2 uppercase tracking-wide" data-i18n="statCrossings">Crossings</div>
                     </div>
                 </div>
 
-                <!-- 关键节点列表 -->
-                <h3 class="text-lg font-bold text-hist-ink mb-6 pl-3 border-l-4 border-hist-red flex items-center">
-                    战役关键节点 <span class="text-xs font-normal text-stone-400 ml-4 border border-stone-200 px-2 py-0.5 rounded">点击卡片查看详情</span>
+                <h3 class="text-lg font-bold text-white mb-6 pl-3 border-l-4 border-yellow-400 flex items-center">
+                    <span data-i18n="keyPointsTitle">关键节点</span> <span class="text-xs font-normal text-white/70 ml-4 border border-white/30 px-2 py-0.5 rounded" data-i18n="clickHint">点击查看</span>
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="location-cards">
-                    <!-- JS 生成卡片 -->
-                </div>
-                
-                <!-- 评价 -->
-                <div class="mt-16 mx-auto max-w-4xl text-center">
-                    <i class="fas fa-quote-left text-3xl text-hist-gold opacity-50 mb-4 block"></i>
-                    <p class="text-2xl font-serif text-hist-ink italic leading-relaxed">
-                        “四渡赤水是我平生得意之笔。”
-                    </p>
-                    <div class="mt-4 flex items-center justify-center gap-3">
-                        <span class="h-px w-8 bg-stone-300"></span>
-                        <span class="text-sm font-bold text-stone-500 uppercase tracking-widest">Mao Zedong, 1960</span>
-                        <span class="h-px w-8 bg-stone-300"></span>
-                    </div>
+                    <!-- Cards generated by JS -->
                 </div>
             </div>
         </div>
 
-        <!-- Page 5: 历史的回响 (过渡色优化) -->
+        <!-- Page 5: 和平 -->
         <div class="page flex items-center justify-center" id="page5">
             <div class="dove-container absolute inset-0 pointer-events-none overflow-hidden">
                 <i class="fas fa-dove dove dove-1"></i>
@@ -412,29 +418,25 @@
             </div>
             
             <div class="relative z-10 flex flex-col items-center max-w-3xl mx-auto px-6 text-center">
-                <div class="mb-8 p-6 border-2 border-stone-800/10 rounded-full">
+                <div class="mb-8 p-6 border-2 border-white/20 rounded-full bg-white/10 backdrop-blur-sm peace-btn-container animate-breathe" onclick="app.showPeaceContent()">
                      <i class="fas fa-peace text-6xl text-white drop-shadow-md"></i>
                 </div>
-               
                 <h1 class="text-5xl md:text-7xl font-black mb-6 text-white drop-shadow-lg font-serif tracking-tight">PEACE</h1>
-                
-                <div class="bg-white/80 backdrop-blur-md p-10 rounded-sm shadow-xl border-t border-white">
-                    <div class="text-3xl font-serif font-bold text-hist-ink mb-6">铭记历史 · 珍爱和平</div>
-                    <p class="text-lg text-stone-600 leading-relaxed font-sans">
+                <div class="glass-card p-10 border-t border-white/50 peace-content" id="peace-content">
+                    <div class="text-3xl font-serif font-bold text-sky-800 mb-6" data-i18n="peaceTitle">铭记历史 · 珍爱和平</div>
+                    <p class="text-lg text-slate-600 leading-relaxed font-sans" data-i18n="peaceDesc">
                         四渡赤水不仅是军事指挥艺术的巅峰，更是人类在绝境中寻求生存与胜利的意志象征。<br>
-                        回望战火，是为了更坚定地守护今天的安宁。<br>
+                        回望战火，是为了更坚定地守护今天的安宁。
                     </p>
                 </div>
-                
-                <button onclick="changePage(-4)" class="mt-12 px-8 py-3 bg-hist-ink text-white rounded-sm hover:bg-hist-red transition-all duration-300 font-bold tracking-widest uppercase text-xs shadow-lg flex items-center gap-3">
-                    <i class="fas fa-undo"></i> 重读历史
+                <button onclick="changePage(-4)" class="mt-12 px-8 py-3 bg-white text-sky-600 rounded-full hover:bg-sky-50 transition font-bold tracking-widest uppercase text-xs shadow-lg flex items-center gap-3">
+                    <i class="fas fa-undo"></i> <span data-i18n="restart">重读历史</span>
                 </button>
             </div>
         </div>
 
     </div>
 
-    <!-- 底部指示器 -->
     <div class="page-indicator">
         <div class="page-dot active" onclick="jumpToPage(1)"></div>
         <div class="page-dot" onclick="jumpToPage(2)"></div>
@@ -443,30 +445,29 @@
         <div class="page-dot" onclick="jumpToPage(5)"></div>
     </div>
 
-    <!-- 模态框 (样式统一) -->
-    <div id="detail-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 bg-hist-ink/90 backdrop-blur-sm z-[99999]">
-        <div class="modal-content bg-hist-paper w-full max-w-4xl h-[85vh] rounded-sm shadow-2xl overflow-hidden flex flex-col border border-stone-400">
-            <div class="bg-white px-8 py-5 flex justify-between items-center shrink-0 border-b border-stone-200">
+    <!-- 模态框 -->
+    <div id="detail-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm z-[99999]">
+        <div class="modal-content bg-white w-full max-w-4xl h-[85vh] rounded-lg shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-gray-50 px-8 py-5 flex justify-between items-center shrink-0 border-b border-gray-200">
                 <div>
-                    <h3 id="modal-title" class="text-3xl font-serif font-bold text-hist-ink"></h3>
-                    <p class="text-xs text-hist-gold uppercase tracking-widest mt-1 font-bold">Tactical Analysis</p>
+                    <h3 id="modal-title" class="text-3xl font-serif font-bold text-gray-800"></h3>
+                    <p class="text-xs text-yellow-600 uppercase tracking-widest mt-1 font-bold">Tactical Analysis</p>
                 </div>
-                <button onclick="app.closeModal()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 transition text-stone-500 text-xl"><i class="fas fa-times"></i></button>
+                <button onclick="app.closeModal()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition text-gray-500 text-xl"><i class="fas fa-times"></i></button>
             </div>
             <div class="flex-grow overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="space-y-8">
                     <div>
-                        <h4 class="font-bold text-hist-red mb-3 text-lg flex items-center gap-2"><i class="fas fa-history"></i> 史实背景</h4>
-                        <p id="modal-desc" class="text-stone-700 text-base leading-7 text-justify font-serif"></p>
+                        <h4 class="font-bold text-red-700 mb-3 text-lg flex items-center gap-2"><i class="fas fa-history"></i> <span data-i18n="modalHistory">史实背景</span></h4>
+                        <p id="modal-desc" class="text-gray-600 text-base leading-7 text-justify font-serif"></p>
                     </div>
-                    <div class="bg-white p-5 rounded-sm shadow-inner border border-stone-100">
-                        <h4 class="font-bold text-stone-800 text-sm mb-2">战略价值</h4>
-                        <p id="modal-context" class="text-stone-600 text-sm italic font-serif"></p>
+                    <div class="bg-yellow-50 p-5 rounded-md border border-yellow-100">
+                        <h4 class="font-bold text-yellow-800 text-sm mb-2" data-i18n="modalStrategy">战略价值</h4>
+                        <p id="modal-context" class="text-yellow-700 text-sm italic font-serif"></p>
                     </div>
                     <div class="grid grid-cols-3 gap-3" id="modal-stats-grid"></div>
                 </div>
-                <div class="flex flex-col bg-white p-4 rounded-sm shadow-sm border border-stone-100">
-                    <h4 class="text-center text-xs font-bold text-stone-400 uppercase mb-4 tracking-widest">Data Visualization</h4>
+                <div class="flex flex-col bg-white p-4 rounded-md shadow-sm border border-gray-100">
                     <div class="flex-grow relative min-h-[250px]"><canvas id="chart-main"></canvas></div>
                 </div>
             </div>
@@ -474,7 +475,103 @@
     </div>
 
     <script>
-        // --- 翻页逻辑 (双向) ---
+        // --- 翻译数据字典 ---
+        const TRANSLATIONS = {
+            zh: {
+                title: "四渡赤水",
+                subtitle: "\"长征史上最光彩神奇的篇章\"",
+                redArmyCount: "3.7<span class='text-lg opacity-70 ml-1'>万</span>",
+                redArmyLabel: "中央红军",
+                enemyCount: "40<span class='text-lg opacity-70 ml-1'>万</span>",
+                enemyLabel: "国民党军",
+                backgroundTitle: "战役背景",
+                backgroundDesc1: "1935年1月，遵义会议确立了新的领导核心。此时，中央红军面临着国民党40万大军的铁壁合围，敌我力量对比高达10倍以上。",
+                backgroundDesc2: "在川黔滇边境的崇山峻岭间，一场惊心动魄的<strong>\"运动战\"</strong>典范即将上演。这不是单纯的撤退，而是为了生存，在敌人重兵集团之间穿插迂回的绝地反击。",
+                maoName: "毛泽东",
+                maoDesc: "中央红军实际指挥者<br>战略：<strong>避实击虚，声东击西</strong><br>\"打得赢就打，打不赢就走\"",
+                chiangName: "蒋介石",
+                chiangDesc: "国民党军最高统帅<br>战略：<strong>堡垒主义，铁壁合围</strong><br>\"凭借天险，毕其功于一役\"",
+                sandTableTitle: "沙盘推演",
+                playAll: "播放全景史诗",
+                legendRed: "中央红军主力",
+                legendBlue: "国民党军防线",
+                statsTitle: "战役复盘",
+                unitDays: "天",
+                statDistance: "迂回行军里程",
+                statRatio: "敌我兵力比",
+                statCrossings: "渡河次数",
+                unitTimes: "次",
+                keyPointsTitle: "关键节点深度解析",
+                clickHint: "点击卡片查看详情",
+                peaceTitle: "铭记历史 · 珍爱和平",
+                peaceDesc: "四渡赤水不仅是军事指挥艺术的巅峰，更是人类在绝境中寻求生存与胜利的意志象征。<br>回望战火，是为了更坚定地守护今天的安宁。",
+                restart: "重读历史",
+                modalHistory: "史实背景",
+                modalStrategy: "战略价值",
+                
+                // 动态数据 - Phases
+                phases: [
+                    { name: '一渡赤水', desc: '土城受挫，西渡避锋', reason: '土城战役受挫，情报误判敌军兵力。毛泽东果断决定“避实击虚”，放弃北渡，改为西渡赤水以避锋芒。', date: '01.29' },
+                    { name: '二渡赤水', desc: '回师东进，二占遵义', reason: '川军加强长江防线，北渡困难。红军抓住敌军兵力空虚，突然回师东进，二渡赤水，直取遵义，攻其不备。', date: '02.18' },
+                    { name: '三渡赤水', desc: '佯攻北渡，引敌西向', reason: '蒋介石重兵围剿遵义。红军再次西渡赤水，佯作北渡长江姿态，成功调动国民党军主力向西集结，掩盖真实战略意图。', date: '03.16' },
+                    { name: '四渡赤水', desc: '秘密东渡，南突乌江', reason: '敌军主力被调往川南。红军秘密折返，四渡赤水，随后南下急行军突破乌江，兵锋直指贵阳，彻底跳出合围圈。', date: '03.21' }
+                ],
+                // 动态数据 - Locations
+                locations: [
+                    { id: 'tucheng', name: '土城战役', desc: '情报误判（敌川军兵力远超预期），战局陷入胶着。毛泽东审时度势，果断提议撤出战斗，西渡赤水。', context: '由被动应战向灵活战略转移的关键转折点。', metrics: { '我军': '3万余', '敌军': '川军主力', '结果': '主动撤出' }, labels: ['预估敌军', '实际敌军', '我军投入'], date: '1935.01.28' },
+                    { id: 'zunyi', name: '遵义大捷', desc: '红军二渡赤水回师东进，攻克天险娄山关，再占遵义城。', context: '中央红军长征以来最大的一次胜利，极大鼓舞了全军士气。', metrics: { '歼敌': '1.8万', '俘虏': '约3000', '缴获': '大量枪支弹药' }, labels: ['歼灭/击溃', '俘虏', '其他'], date: '1935.02.28' },
+                    { id: 'maotai', name: '茅台渡河', desc: '红军在茅台镇大举渡河，造成北渡长江的假象。', context: '一次极具战略眼光的战术欺骗，成功调动了敌军主力。', metrics: { '渡河兵力': '主力', '调动敌军': '数十万', '耗时': '约3天' }, labels: ['欺骗性', '机动性', '风险', '战略收益'], date: '1935.03.16' },
+                    { id: 'taiping', name: '四渡突围', desc: '趁敌重兵西调，红军秘密东渡赤水，随即南下急行军。', context: '神来之笔，将40万大军甩在身后，实现了战略转移的决定性胜利。', metrics: { '红军': '主力', '敌军': '40万包围', '最高日行': '60km' }, labels: ['红军兵力', '敌军包围兵力'], date: '1935.03.22' }
+                ]
+            },
+            en: {
+                title: "Four Crossings",
+                subtitle: "\"The most magical chapter in the Long March\"",
+                redArmyCount: "37<span class='text-lg opacity-70 ml-1'>k</span>",
+                redArmyLabel: "Red Army",
+                enemyCount: "400<span class='text-lg opacity-70 ml-1'>k</span>",
+                enemyLabel: "Opposition",
+                backgroundTitle: "Background",
+                backgroundDesc1: "Jan 1935, Zunyi Conference established new leadership. The Red Army faced encirclement by 400,000 Nationalist troops, outnumbered 10 to 1.",
+                backgroundDesc2: "In the mountainous borders, a masterpiece of <strong>Mobile Warfare</strong> unfolded. Not just a retreat, but a desperate counterattack for survival.",
+                maoName: "Mao Zedong",
+                maoDesc: "Red Army Commander<br>Strategy: <strong>Mobile Warfare, Feint East Strike West</strong><br>\"Fight when you can win, move when you can't\"",
+                chiangName: "Chiang Kai-shek",
+                chiangDesc: "Nationalist Commander<br>Strategy: <strong>Fortress Tactics, Encirclement</strong><br>\"Rely on natural barriers to annihilate in one blow\"",
+                sandTableTitle: "War Game",
+                playAll: "Play Epic Overview",
+                legendRed: "Red Army Main Force",
+                legendBlue: "KMT Defense Line",
+                statsTitle: "Campaign Review",
+                unitDays: "Days",
+                statDistance: "March Distance",
+                statRatio: "Force Ratio",
+                statCrossings: "Crossings",
+                unitTimes: "Times",
+                keyPointsTitle: "Key Tactical Analysis",
+                clickHint: "Click for details",
+                peaceTitle: "Remember History · Cherish Peace",
+                peaceDesc: "The Four Crossings is not only a peak of military art but a symbol of human will to survive in desperation.<br>Looking back at war is to better guard the peace of today.",
+                restart: "Replay History",
+                modalHistory: "History",
+                modalStrategy: "Strategy",
+                
+                phases: [
+                    { name: '1st Crossing', desc: 'Setback at Tucheng, Westward Retreat', reason: 'Intelligence failure at Tucheng. Mao decided to "avoid strength", abandoning the north crossing to cross Chishui westwards.', date: 'Jan 29' },
+                    { name: '2nd Crossing', desc: 'Return East, Retake Zunyi', reason: 'Yangtze heavily guarded. Red Army caught the enemy off guard by returning east, crossing Chishui again to retake Zunyi.', date: 'Feb 18' },
+                    { name: '3rd Crossing', desc: 'Feint North, Lure Enemy West', reason: 'Chiang encircled Zunyi. Red Army crossed west again, feigning a north crossing to lure main KMT forces west.', date: 'Mar 16' },
+                    { name: '4th Crossing', desc: 'Secret Return, Breakout South', reason: 'Enemy main force lured west. Red Army secretly returned east, crossed Chishui, broke through Wujiang southwards.', date: 'Mar 21' }
+                ],
+                locations: [
+                    { id: 'tucheng', name: 'Battle of Tucheng', desc: 'Intelligence error led to stalemate. Mao decisively proposed withdrawal west across Chishui.', context: 'Turning point from passive defense to flexible strategic transfer.', metrics: { 'Red Army': '30k+', 'Enemy': 'Sichuan Army', 'Result': 'Withdrawal' }, labels: ['Est. Enemy', 'Act. Enemy', 'Red Army'], date: '1935.01.28' },
+                    { id: 'zunyi', name: 'Zunyi Victory', desc: 'Red Army returned east, took Loushanguan and Zunyi. Wiped out 2 divisions and 8 regiments.', context: 'Largest victory since the Long March began, greatly boosting morale.', metrics: { 'Enemies': '18k', 'Captives': '3000', 'Loot': 'Massive Arms' }, labels: ['Annihilated', 'Captives', 'Others'], date: '1935.02.28' },
+                    { id: 'maotai', name: 'Maotai Crossing', desc: 'Red Army crossed at Maotai, feigning a north crossing of Yangtze.', context: 'Strategic deception that successfully lured enemy main forces.', metrics: { 'Forces': 'Main', 'Lured': '100k+', 'Time': '3 Days' }, labels: ['Deception', 'Mobility', 'Risk', 'Gain'], date: '1935.03.16' },
+                    { id: 'taiping', name: 'Breakout', desc: 'While enemy moved west, Red Army crossed east secretly and marched south rapidly.', context: 'Masterstroke that left 400k troops behind, achieving strategic victory.', metrics: { 'Red Army': 'Main', 'Enemy': '400k', 'Speed': '60km/day' }, labels: ['Red Army', 'Enemy Force'], date: '1935.03.22' }
+                ]
+            }
+        };
+
+        let currentLang = 'zh';
         let currentPage = 1;
         const totalPages = 5;
         const pages = document.querySelectorAll('.page');
@@ -483,297 +580,321 @@
         const btnNext = document.getElementById('btnNext');
 
         function updateUI() {
-            // 页面类切换
             pages.forEach((page, index) => {
                 const pageNum = index + 1;
                 page.classList.remove('active', 'prev', 'next');
-                
                 if (pageNum === currentPage) {
                     page.classList.add('active');
-                    // 地图重绘Hack
-                    if (currentPage === 3 && app && app.map) {
-                        setTimeout(() => app.map.invalidateSize(), 500);
-                    }
+                    if(currentPage === 2) playPage2Animations(); else resetPage2Animations();
+                    if(currentPage === 3 && app && app.map) setTimeout(() => app.map.invalidateSize(), 500);
+                    if(currentPage === 4) app.playPage4Animations();
                 } else if (pageNum < currentPage) {
                     page.classList.add('prev');
                 } else {
                     page.classList.add('next');
                 }
             });
+            dots.forEach((dot, index) => dot.classList.toggle('active', index + 1 === currentPage));
+            if (currentPage === 1) btnPrev.classList.add('disabled'); else btnPrev.classList.remove('disabled');
+            if (currentPage === totalPages) btnNext.classList.add('disabled'); else btnNext.classList.remove('disabled');
+        }
 
-            // 指示点更新
-            dots.forEach((dot, index) => {
-                dot.classList.toggle('active', index + 1 === currentPage);
-            });
+        function playPage2Animations() {
+            setTimeout(() => { document.getElementById('p2-row1').classList.remove('anim-hidden'); document.getElementById('p2-row1').classList.add('anim-show'); }, 300);
+            setTimeout(() => { document.getElementById('card-mao').classList.remove('anim-left-hidden'); document.getElementById('card-mao').classList.add('anim-slide-in'); }, 1200);
+            setTimeout(() => { document.getElementById('card-chiang').classList.remove('anim-right-hidden'); document.getElementById('card-chiang').classList.add('anim-slide-in'); }, 2200);
+            setTimeout(() => { document.getElementById('card-mao').classList.add('collide-left'); document.getElementById('card-chiang').classList.add('collide-right'); document.getElementById('vs-element').classList.add('vs-show'); }, 3200);
+        }
 
-            // 按钮状态更新
-            if (currentPage === 1) {
-                btnPrev.classList.add('disabled');
-            } else {
-                btnPrev.classList.remove('disabled');
-            }
-            
-            if (currentPage === totalPages) {
-                btnNext.classList.add('disabled');
-            } else {
-                btnNext.classList.remove('disabled');
-            }
+        function resetPage2Animations() {
+            const row1 = document.getElementById('p2-row1'); const mao = document.getElementById('card-mao'); const chiang = document.getElementById('card-chiang'); const vs = document.getElementById('vs-element');
+            row1.classList.remove('anim-show'); row1.classList.add('anim-hidden');
+            mao.classList.remove('anim-slide-in', 'collide-left'); mao.classList.add('anim-left-hidden');
+            chiang.classList.remove('anim-slide-in', 'collide-right'); chiang.classList.add('anim-right-hidden');
+            vs.classList.remove('vs-show');
         }
 
         function changePage(direction) {
             const newPage = currentPage + direction;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                updateUI();
-            }
+            if (newPage >= 1 && newPage <= totalPages) { currentPage = newPage; updateUI(); }
         }
+        function jumpToPage(pageNum) { currentPage = pageNum; updateUI(); }
 
-        function jumpToPage(pageNum) {
-            currentPage = pageNum;
-            updateUI();
-        }
-
-        // --- 核心应用逻辑 ---
         const app = (function() {
             const LOCS = {
                 zunyi: [27.6922, 106.9286], tucheng: [28.3278, 106.4253], maotai: [27.8347, 106.3725],
                 taiping: [28.1833, 106.2167], gulin: [28.0333, 105.8167], guiyang: [26.58, 106.71],
                 wujiang: [27.15, 106.85], chishuiCity: [28.59, 105.69], loushanguan: [27.91, 106.85]
             };
-
             const PATHS = [
                 [LOCS.zunyi, [28.1, 106.8], LOCS.tucheng, [28.25, 106.3], LOCS.gulin],
                 [LOCS.gulin, [28.15, 106.1], LOCS.taiping, [28.0, 106.6], LOCS.loushanguan, LOCS.zunyi],
                 [LOCS.zunyi, [27.75, 106.6], LOCS.maotai, [27.9, 106.1], LOCS.gulin],
                 [LOCS.gulin, LOCS.taiping, [27.8, 106.4], [27.5, 106.6], LOCS.wujiang, [26.8, 106.7], [26.6, 106.6]]
             ];
-
-            const PHASE_DATA = [
-                { name: '一渡赤水', popData: { '里程': '120km', '耗时': '10天', '兵力': '3.7万' } },
-                { name: '二渡赤水', popData: { '里程': '160km', '耗时': '15天', '战果': '歼敌1.8万' } },
-                { name: '三渡赤水', popData: { '里程': '80km', '耗时': '3天', '战术': '高度欺骗' } },
-                { name: '四渡赤水', popData: { '里程': '260km', '耗时': '7天', '结果': '突围成功' } }
+            const KMT_LINES = [
+                [[[28.6, 106.7], [28.35, 106.5]]], [[[28.1, 105.7], [27.7, 105.8]]], [[[27.7, 107.0], [27.7, 106.5]]], [[[28.0, 106.1], [28.0, 106.3]]] 
             ];
+            
+            // 数据源现在是函数，根据当前语言返回
+            const getPhaseData = () => TRANSLATIONS[currentLang].phases;
+            const getLocationsData = () => TRANSLATIONS[currentLang].locations;
 
-            const LOCATIONS_DATA = [
-                {
-                    id: 'tucheng', name: '土城战役', color: '#b45309', icon: 'fas fa-water', date: '1935.01',
-                    desc: '情报误判导致战局胶着。毛泽东展现了实事求是的精神，果断提议撤出战斗，西渡赤水。这一决策标志着红军从被动应战转向主动寻机。',
-                    context: '由单纯军事拼杀向灵活战略转移的转折点。',
-                    metrics: { '我军': '1.2万', '敌军': '2万+', '伤亡': '约4000' },
-                    chartData: { type: 'bar', labels: ['预估敌军', '实际敌军', '我军投入'], data: [4000, 12000, 10000] }
-                },
-                {
-                    id: 'zunyi', name: '遵义大捷', color: '#15803d', icon: 'fas fa-landmark', date: '1935.02',
-                    desc: '二渡赤水回师东进，攻克娄山关，再占遵义。这是长征以来最大的一次胜利，不仅消灭了大量敌军，更重要的是极大地提振了全军士气。',
-                    context: '长征途中首个大胜仗，验证了新战略的正确性。',
-                    metrics: { '歼敌': '1.8万', '俘虏': '3000+', '缴获': '大量枪支' },
-                    chartData: { type: 'pie', labels: ['歼灭', '俘虏', '溃逃'], data: [18000, 3000, 5000] }
-                },
-                {
-                    id: 'maotai', name: '茅台渡河', color: '#1e3a8a', icon: 'fas fa-wine-bottle', date: '1935.03',
-                    desc: '三渡赤水是一次精彩的战术欺骗。红军在茅台镇大举渡河，佯攻引敌西进，使得蒋介石误以为红军要北渡长江，从而调空了贵州腹地防务。',
-                    context: '以假乱真，调动敌军数十万人马。',
-                    metrics: { '渡河': '3万', '调敌': '10万+', '耗时': '3天' },
-                    chartData: { type: 'radar', labels: ['欺骗性', '机动性', '风险', '战略收益'], data: [95, 80, 60, 90] }
-                },
-                {
-                    id: 'taiping', name: '四渡突围', color: '#8f1e1e', icon: 'fas fa-bridge', date: '1935.03',
-                    desc: '就在敌军重兵向川南集结时，红军秘密东渡赤水，随即南下急行军，突破乌江，兵锋直指贵阳。这一招彻底跳出了敌人的包围圈。',
-                    context: '神来之笔，将40万大军甩在身后。',
-                    metrics: { '红军': '2.8万', '敌军': '40万', '日行军': '50km' },
-                    chartData: { type: 'bar', labels: ['红军兵力', '敌军兵力'], data: [28000, 400000] }
-                }
-            ];
-
-            let map, activeLayers = [], animationFrameId;
-            let redPolyline = null, ballMarker = null, activeChart = null;
+            let map, activeLayers = [], animationFrameId, redPolyline = null, ballMarker = null, activeChart = null;
 
             function init() {
-                // 使用CartoDB Light作为底图，然后用CSS滤镜调色
                 map = L.map('map', { center: [27.95, 106.5], zoom: 9, zoomControl: false });
                 L.control.zoom({ position: 'topright' }).addTo(map);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
-                    maxZoom: 12, minZoom: 7,
-                    attribution: '&copy; OpenStreetMap &copy; CARTO'
-                }).addTo(map);
-                
-                // 河流样式
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 12, minZoom: 7, attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(map);
                 const riverCoords = [LOCS.chishuiCity, [28.4, 105.8], [28.3, 106.0], [28.2, 106.3], [27.9, 106.5], [27.7, 106.7], [27.5, 106.9]];
                 L.polyline(riverCoords, { color: '#60a5fa', weight: 6, opacity: 0.5, lineCap: 'round' }).addTo(map);
-                 
+                
+                updateContent(); // 初始化内容
+                calculateTotalDistance();
+            }
+            
+            function setLanguage(lang) {
+                currentLang = lang;
+                document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+                document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+                updateContent();
+            }
+
+            function updateContent() {
+                // 1. Update Static Text
+                const texts = TRANSLATIONS[currentLang];
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (texts[key]) el.innerHTML = texts[key];
+                });
+
+                // 2. Update Phase Buttons
+                const phasesContainer = document.getElementById('phase-buttons-container');
+                phasesContainer.innerHTML = '';
+                getPhaseData().forEach((phase, idx) => {
+                    phasesContainer.innerHTML += `
+                        <button onclick="app.playPhase(${idx})" class="phase-btn w-full text-left p-4 rounded-md bg-gray-50 hover:bg-red-50 border-l-4 border-gray-300 hover:border-red-600 transition group mb-3">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800 text-lg group-hover:text-red-700">${phase.name}</span>
+                                <span class="text-xs font-mono text-gray-400">${phase.date}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1 pl-1">${phase.desc}</div>
+                        </button>`;
+                });
+
+                // 3. Update Location Cards
                 renderCards();
+            }
+
+            function calculateTotalDistance() {
+                setTimeout(() => {
+                    let totalMeters = 0;
+                    PATHS.forEach(path => { for(let i=0; i < path.length - 1; i++) totalMeters += map.distance(path[i], path[i+1]); });
+                    const el = document.getElementById('total-distance-display'); if(el) { el.innerText = Math.round(totalMeters / 1000); el.classList.add('animate-pulse'); }
+                }, 1000);
             }
 
             function renderCards() {
                 const container = document.getElementById('location-cards');
-                LOCATIONS_DATA.forEach(loc => {
+                container.innerHTML = '';
+                const locations = getLocationsData();
+                const colors = ['#dc2626', '#16a34a', '#2563eb', '#b91c1c'];
+                const icons = ['fas fa-water', 'fas fa-landmark', 'fas fa-wine-bottle', 'fas fa-bridge'];
+                
+                locations.forEach((loc, index) => {
                     const card = document.createElement('div');
-                    card.className = "bg-white p-5 rounded-sm shadow-sm border border-stone-100 cursor-pointer hover:shadow-xl hover:border-hist-gold transition duration-300 transform hover:-translate-y-1 group";
-                    card.innerHTML = `
-                        <div class="flex items-center gap-4 mb-3">
-                            <div class="w-12 h-12 rounded-sm flex items-center justify-center text-white shadow-sm transition group-hover:bg-hist-red" style="background:${loc.color}">
-                                <i class="${loc.icon} text-lg"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-hist-ink text-lg group-hover:text-hist-red transition">${loc.name}</h4>
-                                <span class="text-xs font-mono text-stone-400 border-b border-stone-200">${loc.date}</span>
-                            </div>
-                        </div>
-                        <p class="text-xs text-stone-600 line-clamp-2 mb-3 leading-relaxed">${loc.desc}</p>
-                        <div class="flex justify-end">
-                            <span class="text-xs font-bold text-hist-gold opacity-0 group-hover:opacity-100 transition transform translate-x-2 group-hover:translate-x-0">查看战术 <i class="fas fa-arrow-right ml-1"></i></span>
-                        </div>
-                    `;
-                    card.onclick = () => showDetail(loc.id);
+                    card.className = "glass-card p-5 cursor-pointer hover:shadow-2xl hover:border hover:border-white transition duration-300 transform hover:-translate-y-1 group";
+                    card.innerHTML = `<div class="flex items-center gap-4 mb-3"><div class="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition" style="background:${colors[index]}"><i class="${icons[index]} text-lg"></i></div><div><h4 class="font-bold text-gray-800 text-lg transition">${loc.name}</h4><span class="text-xs font-mono text-gray-500 border-b border-gray-300">${loc.date}</span></div></div><p class="text-xs text-gray-600 line-clamp-2 mb-3 leading-relaxed">${loc.desc}</p><div class="flex justify-end"><span class="text-xs font-bold text-yellow-600 opacity-0 group-hover:opacity-100 transition transform translate-x-2 group-hover:translate-x-0">${TRANSLATIONS[currentLang].clickHint} <i class="fas fa-arrow-right ml-1"></i></span></div>`;
+                    
+                    // Inject chart data for detail view
+                    // We map metrics and labels from the current lang data object
+                    // Note: Original chartData structure needs to be reconstructed in showDetail
+                    card.onclick = () => showDetail(loc.id); 
                     container.appendChild(card);
                 });
             }
 
-            function clearStage() {
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                activeLayers.forEach(l => map.removeLayer(l));
-                activeLayers = [];
+            function updateReason(index) {
+                const el = document.getElementById('tactical-text');
+                if(el) {
+                    el.style.opacity = 0;
+                    setTimeout(() => {
+                        el.innerText = getPhaseData()[index].reason;
+                        el.style.opacity = 1;
+                    }, 200);
+                }
             }
 
+            function clearStage() { if (animationFrameId) cancelAnimationFrame(animationFrameId); activeLayers.forEach(l => map.removeLayer(l)); activeLayers = []; }
+
             function animatePath(coords, duration, phaseIdx, callback) {
-                redPolyline = L.polyline([], { color: '#8B1A1A', weight: 4, opacity: 0.8, lineJoin: 'round', className: 'ink-path' }).addTo(map);
-                activeLayers.push(redPolyline);
-                const icon = L.divIcon({ className: 'red-army-ball', iconSize: [16, 16] });
-                ballMarker = L.marker(coords[0], { icon: icon, zIndexOffset: 9999 }).addTo(map);
-                activeLayers.push(ballMarker);
-
-                const d = PHASE_DATA[phaseIdx];
-                const popContent = `
-                    <div class="font-sans p-2 text-sm">
-                        <h4 class="font-bold text-hist-red border-b border-stone-200 mb-2 pb-1">${d.name}</h4>
-                        <div class="space-y-1 text-stone-600 text-xs">
-                            ${Object.entries(d.popData).map(([k,v])=>`<div class="flex justify-between"><span>${k}:</span><b>${v}</b></div>`).join('')}
-                        </div>
-                    </div>`;
+                redPolyline = L.polyline([], { color: '#dc2626', weight: 4, opacity: 0.8, lineJoin: 'round', className: 'ink-path' }).addTo(map); activeLayers.push(redPolyline);
+                const icon = L.divIcon({ className: 'red-army-ball', iconSize: [16, 16] }); ballMarker = L.marker(coords[0], { icon: icon, zIndexOffset: 9999 }).addTo(map); activeLayers.push(ballMarker);
+                const d = getPhaseData()[phaseIdx];
+                const popContent = `<div class="font-sans p-2 text-sm"><h4 class="font-bold text-red-700 border-b border-gray-200 mb-2 pb-1">${d.name}</h4><div class="text-xs text-gray-600">${d.desc}</div></div>`;
                 ballMarker.bindPopup(popContent, { className: 'tactical-popup', closeButton: false, autoClose: false, minWidth: 140 });
-
-                let totalDist = 0;
-                for(let i=0; i<coords.length-1; i++) totalDist += map.distance(coords[i], coords[i+1]);
+                let totalDist = 0; for(let i=0; i<coords.length-1; i++) totalDist += map.distance(coords[i], coords[i+1]);
                 let start = null;
-
                 function step(ts) {
-                    if (!start) start = ts;
-                    const p = (ts - start) / duration;
-                    if (p >= 1) {
-                        redPolyline.setLatLngs(coords);
-                        ballMarker.setLatLng(coords[coords.length-1]);
-                        ballMarker.openPopup(); 
-                        if(callback) callback();
-                        return;
-                    }
-                    const curD = totalDist * p;
-                    let cv = 0; let cp = coords[0]; let pts = [coords[0]];
+                    if (!start) start = ts; const p = (ts - start) / duration;
+                    if (p >= 1) { redPolyline.setLatLngs(coords); ballMarker.setLatLng(coords[coords.length-1]); ballMarker.openPopup(); if(callback) callback(); return; }
+                    const curD = totalDist * p; let cv = 0; let cp = coords[0]; let pts = [coords[0]];
                     for(let i=0; i<coords.length-1; i++) {
                         const dist = map.distance(coords[i], coords[i+1]);
                         if (dist <= 0.1) { cv += dist; pts.push(coords[i+1]); continue; }
-                        if (cv + dist > curD) {
-                            const r = (curD - cv) / dist;
-                            cp = [coords[i][0] + (coords[i+1][0]-coords[i][0])*r, coords[i][1] + (coords[i+1][1]-coords[i][1])*r];
-                            pts.push(cp); break;
-                        } else { cv += dist; pts.push(coords[i+1]); }
+                        if (cv + dist > curD) { const r = (curD - cv) / dist; cp = [coords[i][0] + (coords[i+1][0]-coords[i][0])*r, coords[i][1] + (coords[i+1][1]-coords[i][1])*r]; pts.push(cp); break; } else { cv += dist; pts.push(coords[i+1]); }
                     }
-                    ballMarker.setLatLng(cp); redPolyline.setLatLngs(pts); map.panTo(cp, {animate: false});
-                    animationFrameId = requestAnimationFrame(step);
+                    ballMarker.setLatLng(cp); redPolyline.setLatLngs(pts); map.panTo(cp, {animate: false}); animationFrameId = requestAnimationFrame(step);
                 }
                 animationFrameId = requestAnimationFrame(step);
             }
 
             function playPhase(index) {
-                clearStage();
-                const kmtLines = [[[[28.6, 106.7], [28.35, 106.5]]], [[[28.1, 105.7], [27.7, 105.8]]], [[[27.7, 107.0], [27.7, 106.5]]], [[[28.0, 106.1], [28.0, 106.3]]]];
-                kmtLines[index].forEach(line => {
-                    const l = L.polyline(line, { color: '#2C3E50', weight: 2, dashArray: '5, 8', opacity: 0.6 }).addTo(map);
-                    activeLayers.push(l);
-                });
-                animatePath(PATHS[index], 3000, index);
+                clearStage(); updateReason(index);
+                // 颜色加深，线条变粗
+                KMT_LINES[index].forEach(line => { const l = L.polyline(line, { color: '#0f172a', weight: 3, dashArray: '5, 8', opacity: 0.9 }).addTo(map); activeLayers.push(l); });
+                setTimeout(() => { animatePath(PATHS[index], 4000, index); }, 1000);
             }
 
             function playOverview() {
-                clearStage();
-                let idx = 0;
+                clearStage(); let idx = 0;
                 function next() {
                     if (idx >= 4) return;
-                    const coords = PATHS[idx];
-                    if (idx > 0 && ballMarker) map.removeLayer(ballMarker);
-                    const poly = L.polyline([], { color: '#8B1A1A', weight: 3, opacity: 0.6 }).addTo(map);
-                    activeLayers.push(poly);
-                    const icon = L.divIcon({ className: 'red-army-ball', iconSize: [16, 16] });
-                    ballMarker = L.marker(coords[0], { icon: icon, zIndexOffset: 9999 }).addTo(map);
-                    activeLayers.push(ballMarker);
-                    
-                    let start = null; const dur = 1500; let totalDist = 0;
-                    for(let i=0; i<coords.length-1; i++) totalDist += map.distance(coords[i], coords[i+1]);
-                    
+                    updateReason(idx);
+                    KMT_LINES[idx].forEach(line => { const l = L.polyline(line, { color: '#0f172a', weight: 3, dashArray: '4, 6', opacity: 0.9 }).addTo(map); activeLayers.push(l); });
+                    const coords = PATHS[idx]; if (idx > 0 && ballMarker) map.removeLayer(ballMarker);
+                    const poly = L.polyline([], { color: '#dc2626', weight: 3, opacity: 0.6 }).addTo(map); activeLayers.push(poly);
+                    const icon = L.divIcon({ className: 'red-army-ball', iconSize: [16, 16] }); ballMarker = L.marker(coords[0], { icon: icon, zIndexOffset: 9999 }).addTo(map); activeLayers.push(ballMarker);
+                    let start = null; const dur = 2000; let totalDist = 0; for(let i=0; i<coords.length-1; i++) totalDist += map.distance(coords[i], coords[i+1]);
                     function step(ts) {
-                        if (!start) start = ts;
-                        const p = (ts - start) / dur;
-                        if (p >= 1) {
-                            poly.setLatLngs(coords); ballMarker.setLatLng(coords[coords.length-1]);
-                            idx++; next();
-                            return;
-                        }
+                        if (!start) start = ts; const p = (ts - start) / dur;
+                        if (p >= 1) { poly.setLatLngs(coords); ballMarker.setLatLng(coords[coords.length-1]); idx++; next(); return; }
                         const curD = totalDist * p; let cv = 0; let cp = coords[0]; let pts = [coords[0]];
                         for(let i=0; i<coords.length-1; i++) {
                             const dist = map.distance(coords[i], coords[i+1]);
-                            if (cv + dist > curD) {
-                                const r = (curD - cv) / dist;
-                                cp = [coords[i][0] + (coords[i+1][0]-coords[i][0])*r, coords[i][1] + (coords[i+1][1]-coords[i][1])*r];
-                                pts.push(cp); break;
-                            } else { cv += dist; pts.push(coords[i+1]); }
+                            if (cv + dist > curD) { const r = (curD - cv) / dist; cp = [coords[i][0] + (coords[i+1][0]-coords[i][0])*r, coords[i][1] + (coords[i+1][1]-coords[i][1])*r]; pts.push(cp); break; } else { cv += dist; pts.push(coords[i+1]); }
                         }
-                        ballMarker.setLatLng(cp); poly.setLatLngs(pts); map.panTo(cp, {animate: false});
-                        animationFrameId = requestAnimationFrame(step);
+                        ballMarker.setLatLng(cp); poly.setLatLngs(pts); map.panTo(cp, {animate: false}); animationFrameId = requestAnimationFrame(step);
                     }
                     animationFrameId = requestAnimationFrame(step);
                 }
                 next();
             }
 
+            function playPage4Animations() {
+                const ratioCard = document.getElementById('ratio-card');
+                if(ratioCard) {
+                    ratioCard.classList.remove('animate-lasers');
+                    void ratioCard.offsetWidth;
+                    ratioCard.classList.add('animate-lasers');
+                }
+
+                // 延迟启动日历翻动
+                setTimeout(() => {
+                    let count = 0; const target = 72; const duration = 4000; 
+                    const counterEl = document.getElementById('days-counter');
+                    const dateEl = document.getElementById('date-flip');
+                    const startTs = new Date('1935-01-19').getTime();
+                    const endTs = new Date('1935-03-31').getTime();
+                    const range = endTs - startTs;
+                    
+                    const startTime = performance.now();
+                    function anim(currentTime) {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        count = Math.floor(progress * target);
+                        if(counterEl) counterEl.innerText = count;
+
+                        const currentTs = startTs + (range * progress);
+                        const d = new Date(currentTs);
+                        const dateStr = `1935.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getDate().toString().padStart(2,'0')}`;
+                        if(dateEl) dateEl.innerText = dateStr;
+
+                        if(progress < 1) requestAnimationFrame(anim);
+                    }
+                    requestAnimationFrame(anim);
+                }, 1000); // 增加延迟至1s
+            }
+
             function showDetail(id) {
-                const loc = LOCATIONS_DATA.find(l => l.id === id);
-                if (!loc) return;
+                const loc = getLocationsData().find(l => l.id === id); if (!loc) return;
                 const modal = document.getElementById('detail-modal');
                 document.getElementById('modal-title').innerText = loc.name;
                 document.getElementById('modal-desc').innerText = loc.desc;
                 document.getElementById('modal-context').innerText = loc.context;
-                document.getElementById('modal-stats-grid').innerHTML = Object.entries(loc.metrics).map(([k,v]) => 
-                    `<div class="bg-stone-50 p-2 rounded border border-stone-200 text-center">
-                        <div class="text-[10px] text-stone-400 uppercase tracking-wide">${k}</div>
-                        <div class="font-bold text-hist-red">${v}</div>
-                    </div>`
-                ).join('');
-                
+                document.getElementById('modal-stats-grid').innerHTML = Object.entries(loc.metrics).map(([k,v]) => `<div class="bg-gray-50 p-2 rounded border border-gray-200 text-center"><div class="text-[10px] text-gray-400 uppercase tracking-wide">${k}</div><div class="font-bold text-red-700">${v}</div></div>`).join('');
                 if(activeChart) activeChart.destroy();
                 const ctx = document.getElementById('chart-main').getContext('2d');
+                
+                let chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
+                let chartType = 'bar'; // Default
+                let bgColors = ['#fbbf24', '#1e293b', '#b91c1c']; 
+                
+                // Reconstruct data based on ID and current language labels
+                let chartDataValues = [];
+                if(id === 'tucheng') chartDataValues = [4000, 20000, 10000];
+                else if(id === 'zunyi') chartDataValues = [18000, 3000, 2000];
+                else if(id === 'maotai') chartDataValues = [95, 85, 50, 95];
+                else if(id === 'taiping') chartDataValues = [30000, 400000];
+
+                // Reset animation
+                chartOptions.animation = {};
+
+                if (id === 'tucheng' || id === 'taiping') {
+                    chartType = 'bar';
+                    chartOptions.animation = {
+                        duration: 2000,
+                        easing: 'easeOutQuart', // Smooth growth
+                        y: { from: 0 }
+                    };
+                }
+                else if (id === 'zunyi') {
+                    chartType = 'pie';
+                    chartOptions.animation = {
+                        animateScale: true, animateRotate: true, duration: 1500, easing: 'easeOutQuart'
+                    };
+                    bgColors = ['#0f172a', '#ef4444', '#fbbf24']; // 黑蓝 -> 红 -> 黄
+                }
+                else if (id === 'maotai') {
+                    chartType = 'radar';
+                    chartOptions.scales = {
+                        r: { min: 0, max: 100, beginAtZero: true, ticks: { stepSize: 20, backdropColor: 'transparent' }, pointLabels: { font: { size: 12 } } }
+                    };
+                    chartOptions.animation = {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    };
+                }
+
                 activeChart = new Chart(ctx, {
-                    type: loc.chartData.type,
-                    data: { labels: loc.chartData.labels, datasets: [{ label: '数据', data: loc.chartData.data, backgroundColor: ['#C5A065', '#2C3E50', '#8B1A1A'] }] },
-                    options: { responsive: true, maintainAspectRatio: false }
+                    type: chartType,
+                    data: { 
+                        labels: loc.labels, 
+                        datasets: [{ 
+                            label: loc.name, 
+                            data: chartDataValues, 
+                            backgroundColor: chartType === 'radar' ? 'rgba(251, 191, 36, 0.5)' : bgColors,
+                            borderColor: chartType === 'radar' ? '#fbbf24' : undefined,
+                            borderWidth: chartType === 'radar' ? 2 : 1 
+                        }] 
+                    },
+                    options: chartOptions
                 });
                 modal.classList.remove('hidden');
             }
 
             function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+            
+            function showPeaceContent() {
+                document.getElementById('peace-content').classList.add('show');
+            }
 
-            return { init, playPhase, playOverview, closeModal, showDetail, map };
+            return { init, setLanguage, playPhase, playOverview, playPage4Animations, closeModal, showDetail, showPeaceContent, map };
         })();
 
-        window.onload = () => {
-            app.init();
-            updateUI();
-        };
-        
-        // 键盘支持
-        document.addEventListener('keydown', (e) => {
-            if(e.key === 'ArrowRight') changePage(1);
-            if(e.key === 'ArrowLeft') changePage(-1);
-        });
+        window.onload = () => { app.init(); updateUI(); };
+        document.addEventListener('keydown', (e) => { if(e.key === 'ArrowRight') changePage(1); if(e.key === 'ArrowLeft') changePage(-1); });
     </script>
 </body>
 </html>
